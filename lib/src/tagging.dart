@@ -134,6 +134,7 @@ class FlutterTagging<T extends Taggable> extends StatefulWidget {
 
   /// Creates a [FlutterTagging] widget.
   FlutterTagging({
+    Key? key,
     required this.initialItems,
     required this.findSuggestions,
     required this.configureChip,
@@ -155,7 +156,7 @@ class FlutterTagging<T extends Taggable> extends StatefulWidget {
     this.animationDuration = const Duration(milliseconds: 500),
     this.animationStart = 0.25,
     this.onAdded,
-  });
+  }) : super(key: key);
 
   @override
   _FlutterTaggingState<T> createState() => _FlutterTaggingState<T>();
@@ -166,6 +167,7 @@ class _FlutterTaggingState<T extends Taggable>
   late final TextEditingController _textController;
   late final FocusNode _focusNode;
   T? _additionItem;
+  String _lastQuery = '';
 
   @override
   void initState() {
@@ -180,6 +182,13 @@ class _FlutterTaggingState<T extends Taggable>
     _textController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _refreshSuggestions() {
+    // Force refresh by briefly changing text to trigger suggestionsCallback
+    final currentText = _textController.text;
+    _textController.text = currentText + ' ';
+    _textController.text = currentText;
   }
 
   @override
@@ -226,6 +235,7 @@ class _FlutterTaggingState<T extends Taggable>
             enabled: widget.textFieldConfiguration.enabled,
           ),
           suggestionsCallback: (query) async {
+            _lastQuery = query;
             final suggestions = await widget.findSuggestions(query);
             suggestions.removeWhere(widget.initialItems.contains);
             if (widget.additionCallback != null && query.isNotEmpty) {
@@ -260,6 +270,7 @@ class _FlutterTaggingState<T extends Taggable>
                   setState(() {});
                   widget.onChanged?.call();
                   _textController.clear();
+                  _refreshSuggestions();
                   _focusNode.unfocus();
                 },
                 child: Builder(
@@ -280,6 +291,7 @@ class _FlutterTaggingState<T extends Taggable>
               setState(() {});
               widget.onChanged?.call();
               _textController.clear();
+              _refreshSuggestions();
             }
           },
         ),
